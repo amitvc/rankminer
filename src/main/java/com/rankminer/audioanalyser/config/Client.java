@@ -8,6 +8,8 @@
 
 package com.rankminer.audioanalyser.config;
 
+import java.io.File;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -40,17 +42,17 @@ import javax.xml.bind.annotation.XmlType;
  */
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(name = "client", propOrder = {
-    "name",
+    "identifier",
     "dataInputDirectory",
     "dataOutputDirectory",
     "dataArchiveDirectory",
     "dataErrorArchiveDirectory",
     "pollingInterval"
 })
-public class Client {
+public class Client extends Thread {
 
     @XmlElement(required = true)
-    protected String name;
+    protected String identifier;
     @XmlElement(required = true)
     protected String dataInputDirectory;
     @XmlElement(required = true)
@@ -69,8 +71,8 @@ public class Client {
      *     {@link String }
      *     
      */
-    public String getName() {
-        return name;
+    public String getIdentifier() {
+        return identifier;
     }
 
     /**
@@ -81,8 +83,8 @@ public class Client {
      *     {@link String }
      *     
      */
-    public void setName(String value) {
-        this.name = value;
+    public void setIdentifier(String value) {
+        this.identifier = value;
     }
 
     /**
@@ -196,5 +198,22 @@ public class Client {
     public void setPollingInterval(long value) {
         this.pollingInterval = value;
     }
-
+    
+    @Override
+    public void run() {
+    	
+    	try {
+    		// TODO perform directory check for audio file and run the feature vector function.
+    		// save the output from processFile function to a file and then move the audio file to archive directory.
+    		File [] files = new File(dataInputDirectory).listFiles();
+    		for(File file : files) {
+    			if(file.isFile()) {
+    				// TODO perform process
+    			}
+    		}
+			sleep(pollingInterval);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+    }
 }

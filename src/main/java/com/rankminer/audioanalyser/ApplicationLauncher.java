@@ -1,11 +1,15 @@
 package com.rankminer.audioanalyser;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
+import java.util.Scanner;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import javax.xml.bind.Unmarshaller;
 
 import org.apache.log4j.Logger;
 
@@ -31,10 +35,14 @@ public final class ApplicationLauncher {
 	 * 
 	 * @param fileName
 	 * @return
+	 * @throws JAXBException 
 	 */
-	public Config readConfigurationFile(String fileName) {
-		
-		return null;
+	public Config readConfigurationFile(String fileName) throws JAXBException {
+		File file = new File(fileName);
+		JAXBContext jaxbContext = JAXBContext.newInstance(Config.class);
+		Unmarshaller jaxbMarshaller = jaxbContext.createUnmarshaller();
+		Config config = (Config)jaxbMarshaller.unmarshal(file);
+		return config;
 	}
 	
 	/**
@@ -64,13 +72,14 @@ public final class ApplicationLauncher {
 
 		config.getClientList().add(c1);
 		
-
-		File file = new File("configuration"+ new Date().toString() + ".xml");
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+		File file = new File("configuration"+ formatter.format(new Date()) + ".xml");
 		JAXBContext jaxbContext = JAXBContext.newInstance(Config.class);
 		Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
 		jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
+		System.out.println("Generating sample configuration file." + formatter.format(new Date()) + ".xml" );
 		jaxbMarshaller.marshal(config, file);
-
+		
 	}
 
 	/**
@@ -81,40 +90,61 @@ public final class ApplicationLauncher {
 	 */
 	public static void main(final String... args) {
 		ApplicationLauncher l = new ApplicationLauncher();
+		if(args.length == 0) {
+			reportUsage();
+			System.exit(0);
+		}
 		
-		/*
-		 * final Scanner scanner = new Scanner(System.in);
-		 * 
-		 * 
-		 * if (LOGGER.isInfoEnabled()) {
-		 * LOGGER.info("\n========================================================="
-		 * + "\n                                                         " +
-		 * "\n    Please press 'q + Enter' to quit the application.    " +
-		 * "\n                                                         " +
-		 * "\n=========================================================" ); }
-		 * 
-		 * 
-		 * while (true) {
-		 * 
-		 * final String input = scanner.nextLine();
-		 * 
-		 * if("q".equals(input.trim())) { break; }
-		 * 
-		 * try {
-		 * 
-		 * } catch (Exception e) { LOGGER.error("An exception was caught: " +
-		 * e); }
-		 * 
-		 * System.out.print("Please enter a string and press <enter>:");
-		 * 
-		 * }
-		 * 
-		 * if (LOGGER.isInfoEnabled()) {
-		 * LOGGER.info("Exiting application...bye."); }
-		 * 
-		 * System.exit(0);
-		 * 
-		 * }
-		 */
+		if(args[0].equalsIgnoreCase("generate")) {
+			try {
+				l.writeConfigurationFile();
+			} catch (JAXBException e) {
+				LOGGER.error("Problems writing configuration file. Exiting application");	
+				e.printStackTrace();
+				System.exit(0);
+			}
+		} else {
+			try {
+				Config config = l.readConfigurationFile(args[0]);
+				l.spawnAudioProcessorThread(config);
+			} catch (JAXBException e) {
+				LOGGER.error("Problems reading configuration. Exiting application");
+				e.printStackTrace();
+			}
+			final Scanner scanner = new Scanner(System.in);
+			System.out.print("Please enter 'q' to exit application:");
+			while (true) {
+				final String input = scanner.nextLine();
+				if ("q".equals(input.trim())) {
+					break;
+				}
+				System.out.print("Please enter a string and press <enter>:");
+			}
+			System.exit(0);
+		}
 	}
+
+	/**
+	 * Method spawns threads which run in background to process audio files.
+	 * The Config object drives the application audio analyser threads.
+	 * @param config
+	 */
+	private void spawnAudioProcessorThread(Config config) {
+		List<Client> clientList = config.getClientList();
+		for(Client client : clientList) {
+			Thread clientThread = new Thread(client);
+			clientThread.start();
+		}
+	}
+
+	
+	/**
+	 * Method displays usage of the application.
+	 */
+	private static void reportUsage() {
+		System.out.println("Application runs as background process\n"+
+							"Type java -jar audioanalyser.jar configuration_file_name\n"+
+							"Type java -jar audioanalyser.jar generate - to generate sample configuration file.");
+		
+	}			
 }
