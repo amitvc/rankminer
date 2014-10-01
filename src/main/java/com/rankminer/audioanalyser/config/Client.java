@@ -8,12 +8,26 @@
 
 package com.rankminer.audioanalyser.config;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlType;
+
+import org.apache.log4j.Logger;
+
+import com.rankminer.audioanalyser.jni.CoreRankMinerImpl;
 
 
 /**
@@ -49,8 +63,9 @@ import javax.xml.bind.annotation.XmlType;
     "dataErrorArchiveDirectory",
     "pollingInterval"
 })
-public class Client extends Thread {
-
+public class Client implements Runnable {
+	private static final Logger LOGGER = Logger
+			.getLogger(Client.class);
     @XmlElement(required = true)
     protected String identifier;
     @XmlElement(required = true)
@@ -199,21 +214,83 @@ public class Client extends Thread {
         this.pollingInterval = value;
     }
     
-    @Override
     public void run() {
-    	
     	try {
-    		// TODO perform directory check for audio file and run the feature vector function.
-    		// save the output from processFile function to a file and then move the audio file to archive directory.
     		File [] files = new File(dataInputDirectory).listFiles();
     		for(File file : files) {
     			if(file.isFile()) {
-    				// TODO perform process
+    				try {
+						byte[] audioData = extractData(file);
+						double[] featureVector = CoreRankMinerImpl.processFile(audioData);
+						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+						createFeatureVectorFile(dataOutputDirectory, 
+								file.getName() + "" + formatter.format(new Date()) + ".dat",
+								featureVector);
+						archiveAudioFile(dataInputDirectory, file.getName(), dataArchiveDirectory);
+					} catch (IOException e) {
+						e.printStackTrace();
+						LOGGER.error("Unable to extract data from file " + file.getName());
+					}
+    				
     			}
     		}
-			sleep(pollingInterval);
+			Thread.sleep(pollingInterval);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
+    }
+    
+    /**
+     * Archive audio file from input directory to archive directory. 
+     * @param dataInputDirectory
+     * @param name
+     * @param dataArchiveDirectory
+     * @throws IOException 
+     */
+    private static void archiveAudioFile(String dataInputDirectory, String name,
+			String dataArchiveDirectory) throws IOException {
+    	File audioFileInput = new File(dataInputDirectory + File.separator + name);
+    	Files.move(audioFileInput.toPath(), new File(dataArchiveDirectory + File.separator + name).toPath());
+	}
+
+	/**
+     * Method extracts audio file data.
+     * @param file audio file
+     * @return byte[] of data in audio file
+     * @throws IOException
+     */
+    public static byte[] extractData(File file) throws IOException {
+    	 BufferedInputStream bis = null;
+    	 BufferedOutputStream bos = null;
+    	 bis = new BufferedInputStream(new FileInputStream(file));
+    	 ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    	 bos = new BufferedOutputStream(baos);
+    	 int c;
+    	 while ((c = bis.read()) != -1) {
+    		 bos.write(c);
+    	 }
+    	 bos.flush();
+    	 bis.close();
+    	 bos.close();
+    	 return baos.toByteArray();
+    }
+    
+    /**
+     * 
+     * @param directory
+     * @param fileName
+     * @param data
+     * @throws IOException 
+     */
+    public static void createFeatureVectorFile(String directory, String fileName, double[] data) throws IOException {
+    	File featureVectorFile = new File(directory + File.separator + fileName);
+    	BufferedWriter output = new BufferedWriter(new FileWriter(featureVectorFile));
+    	StringBuffer sb = new StringBuffer();
+    	for(int i=0;i<data.length;i++) {
+    		sb.append(data[i] + ",");
+    	}
+    	output.write(sb.toString());
+    	output.flush();
+    	output.close();
     }
 }

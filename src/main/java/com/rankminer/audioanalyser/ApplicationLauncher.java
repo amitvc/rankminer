@@ -57,7 +57,7 @@ public final class ApplicationLauncher {
 		c1.setDataErrorArchiveDirectory("/opt/archiveError");
 		c1.setDataInputDirectory("/opt/input");
 		c1.setDataOutputDirectory("/opt/output");
-		c1.setName("DTC");
+		c1.setIdentifier("DTC");
 		c1.setPollingInterval(3600);
 
 		config.getClientList().add(c1);
@@ -67,7 +67,7 @@ public final class ApplicationLauncher {
 		c1.setDataErrorArchiveDirectory("/opt/archiveError");
 		c1.setDataInputDirectory("/opt/input");
 		c1.setDataOutputDirectory("/opt/output");
-		c1.setName("CDC");
+		c1.setIdentifier("CDC");
 		c1.setPollingInterval(600);
 
 		config.getClientList().add(c1);
@@ -77,7 +77,7 @@ public final class ApplicationLauncher {
 		JAXBContext jaxbContext = JAXBContext.newInstance(Config.class);
 		Marshaller jaxbMarshaller = jaxbContext.createMarshaller();
 		jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
-		System.out.println("Generating sample configuration file." + formatter.format(new Date()) + ".xml" );
+		System.out.println("Generating sample configuration file - " + file.getName() );
 		jaxbMarshaller.marshal(config, file);
 		
 	}
@@ -88,7 +88,7 @@ public final class ApplicationLauncher {
 	 * @param args
 	 *            - command line arguments
 	 */
-	public static void main(final String... args) {
+	public static void main(final String args[]) {
 		ApplicationLauncher l = new ApplicationLauncher();
 		if(args.length == 0) {
 			reportUsage();
