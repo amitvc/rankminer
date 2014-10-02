@@ -214,30 +214,36 @@ public class Client implements Runnable {
         this.pollingInterval = value;
     }
     
+    /**
+     * Thread wakes up after polling interval and processes audio files.
+     */
     public void run() {
-    	try {
-    		File [] files = new File(dataInputDirectory).listFiles();
-    		for(File file : files) {
-    			if(file.isFile()) {
-    				try {
-						byte[] audioData = extractData(file);
-						double[] featureVector = CoreRankMinerImpl.processFile(audioData);
-						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-						createFeatureVectorFile(dataOutputDirectory, 
-								file.getName() + "" + formatter.format(new Date()) + ".dat",
-								featureVector);
-						archiveAudioFile(dataInputDirectory, file.getName(), dataArchiveDirectory);
-					} catch (IOException e) {
-						e.printStackTrace();
-						LOGGER.error("Unable to extract data from file " + file.getName());
-					}
-    				
-    			}
-    		}
-			Thread.sleep(pollingInterval);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+    	while(true) {
+    		try {
+        		File [] files = new File(dataInputDirectory).listFiles();
+        		CoreRankMinerImpl.processFile(null);
+        		for(File file : files) {
+        			if(file.isFile()) {
+        				try {
+    						byte[] audioData = extractData(file);
+    						double[] featureVector = CoreRankMinerImpl.processFile(audioData);
+    						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+    						createFeatureVectorFile(dataOutputDirectory, 
+    								file.getName() + "" + formatter.format(new Date()) + ".dat",
+    								featureVector);
+    						archiveAudioFile(dataInputDirectory, file.getName(), dataArchiveDirectory);
+    					} catch (IOException e) {
+    						e.printStackTrace();
+    						LOGGER.error("Unable to extract data from file " + file.getName());
+    					}
+        				
+        			}
+        		}
+    			Thread.sleep(pollingInterval);
+    		} catch (InterruptedException e) {
+    			e.printStackTrace();
+    		}	
+    	}    	
     }
     
     /**
