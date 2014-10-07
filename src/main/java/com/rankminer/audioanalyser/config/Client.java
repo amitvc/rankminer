@@ -28,6 +28,7 @@ import javax.xml.bind.annotation.XmlType;
 import org.apache.log4j.Logger;
 
 import com.rankminer.audioanalyser.jni.CoreRankMinerImpl;
+import com.rankminer.audioanalyser.jni.RankMinerAPI;
 
 
 /**
@@ -221,15 +222,14 @@ public class Client implements Runnable {
     	while(true) {
     		try {
         		File [] files = new File(dataInputDirectory).listFiles();
-        		CoreRankMinerImpl.processFile(null);
         		for(File file : files) {
         			if(file.isFile()) {
         				try {
+        					LOGGER.info("Reading audio data from file : "+ file.getName());
     						byte[] audioData = extractData(file);
-    						double[] featureVector = CoreRankMinerImpl.processFile(audioData);
-    						SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
-    						createFeatureVectorFile(dataOutputDirectory, 
-    								file.getName() + "" + formatter.format(new Date()) + ".dat",
+    						double[] featureVector = RankMinerAPI.extractFeatures(audioData);
+    						LOGGER.info("Feature vector extracted for audio file : "+ file.getName());
+    						createFeatureVectorFile(dataOutputDirectory,file.getName().substring(0, file.getName().length()-4) + ".dat",
     								featureVector);
     						archiveAudioFile(dataInputDirectory, file.getName(), dataArchiveDirectory);
     					} catch (IOException e) {
@@ -257,6 +257,7 @@ public class Client implements Runnable {
 			String dataArchiveDirectory) throws IOException {
     	File audioFileInput = new File(dataInputDirectory + File.separator + name);
     	Files.move(audioFileInput.toPath(), new File(dataArchiveDirectory + File.separator + name).toPath());
+    	LOGGER.info("Audio file "+ name + "  archived to "+ dataArchiveDirectory + File.separator + name);
 	}
 
 	/**
@@ -296,6 +297,7 @@ public class Client implements Runnable {
     		sb.append(data[i] + ",");
     	}
     	output.write(sb.toString());
+    	LOGGER.info("Feature vector written to output file : "+ featureVectorFile.getName());
     	output.flush();
     	output.close();
     }
